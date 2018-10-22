@@ -7,10 +7,52 @@ const config = require('./config.json');
 const soundDB = new SQLite(config.soundDB);
 const fs = require('fs');
 const audioHandler = require('./audioHandler.js');
+
+/*
+message.content should have the format: -add alias "alias" "filename"
+@param {Discord.Message}
+*/
+async function aliasAdd(message) {
+	const fragments = message.content.slice(config.prefix.length).split(' "');
+	if(fragments.length !== 3) {
+		message.channel.send('Invalid arguments! usage:' + config.prefix + 'alias add "*alias*" "*filename*"');
+		return;
+	}
+	const alias = fragments[1].slice(0, -1);
+	const filename = fragments[2].slice(0, -1);
+	const fileQuery = await soundDB.prepare('SELECT * FROM sounds WHERE filename = ?').get(filename);
+	const aliasQuery = await soundDB.prepare('SELECT * FROM aliases WHERE alias = ?').get(alias);
+	if(aliasQuery) {
+		message.channel.send('Error: Alias already used by ' + aliasQuery.filename);
+		return;
+	}
+	if(!fileQuery) {
+		message.channel.send('Error: File not found!');
+		return;
+	}
+	soundDB.prepare('INSERT INTO aliases (alias, filename) VALUES (@alias, @filename);').run({ alias: alias, filename: filename });
+	message.channel.send('Alias "' + alias + '" added for "' + filename + '"!');
+}
+
+/*
+message.content should have the format: -remove alias "alias"
+@param {Discord.Message}
+*/
+async function aliasRemove(message) {
+	const alias = message.content.slice(config.prefix.length).split('"')[1];
+	const aliasQuery = await soundDB.prepare('SELECT * FROM aliases WHERE alias = ?').get(alias);
+	if(!aliasQuery) {
+		message.channel.send('Error: Alias not found!');
+		return;
+	}
+	soundDB.prepare('DELETE FROM aliases WHERE alias = ?').run(alias);
+	message.channel.send('Removed alias "' + alias + '" from db!');
+}
+
 /*
 Takes in a soundDB query using the all() and
 returns string with filename, times played, alias, and description
-@param {filename, description, timesPlayed} query
+@param [{filename, description, timesPlayed}] query
 */
 async function printSoundQuery(query) {
 	let result = '';
@@ -26,6 +68,7 @@ async function printSoundQuery(query) {
 	}
 	return result;
 }
+
 /*
 Takes in a soundDB query using the all() and
 returns string with just filename and times played
@@ -41,8 +84,23 @@ function printShortSoundQuery(query) {
 }
 
 module.exports = {
+	aliasAdd: aliasAdd,
+	aliasRemove: aliasRemove,
 	printSoundQuery: printSoundQuery,
 	printShortSoundQuery: printShortSoundQuery,
+};
+
+module.exports.alias = function(message) {
+	const command = message.content.slice(config.prefix.length).toLowerCase().split(' ');
+	if(command[1] === 'add') {
+		module.exports.aliasAdd(message);
+		return;
+	}
+	if(command[1] === 'remove') {
+		module.exports.aliasRemove(message);
+		return;
+	}
+	message.channel.send('Invalid alias command!');
 };
 
 module.exports.dbSize = function(message) {
@@ -62,16 +120,6 @@ module.exports.mostPlayedDetailed = async function(message) {
 	message.channel.send('Most Played Sound Clips:\n' + result);
 };
 
-module.exports.search = async function(message) {
-	const query = await soundDB.prepare('SELECT * FROM sounds WHERE ' +
-	'LOWER(filename || \' \' || description) LIKE ?')
-		.all('%' + message.content.split(' ').slice(1).join(' ').toLowerCase() + '%');
-	const result = await module.exports.printSoundQuery(query);
-	// 10 results maximum for now... will adjust later?
-	message.channel.send(query.length + ' record' + (query.length === 1 ? '' : 's')
-		+ ' found!\n' + result);
-};
-
 module.exports.prepareSound = function(client) {
 	const soundCheck = soundDB.prepare('SELECT count(*) FROM sqlite_master WHERE type=\'table\' AND name=\'sounds\';').get();
 	if(!soundCheck['count(*)']) {
@@ -82,9 +130,6 @@ module.exports.prepareSound = function(client) {
 		soundDB.pragma('synchronous = 1');
 		soundDB.pragma('journal_mode = wal');
 		console.log('Sound DB created!');
-	}
-	if(!fs.existsSync(config.SoundDirectory)) {
-		fs.mkdirSync(config.SoundDirectory);
 	}
 	const checkSound = soundDB.prepare('SELECT count(*) FROM sounds WHERE filename = ?');
 	const addSound = soundDB.prepare('INSERT OR REPLACE INTO sounds (filename, description, timesPlayed) VALUES (@filename, @description, @timesPlayed);');
@@ -99,11 +144,20 @@ module.exports.prepareSound = function(client) {
 	client.guilds.map(guild => client.audioQueue.set(guild.id, []));
 };
 
+module.exports.search = async function(message) {
+	const query = await soundDB.prepare('SELECT * FROM sounds WHERE ' +
+	'LOWER(filename || \' \' || description) LIKE ?')
+		.all('%' + message.content.split(' ').slice(1).join(' ').toLowerCase() + '%');
+	const result = await module.exports.printSoundQuery(query);
+	// 10 results maximum for now... will adjust later?
+	message.channel.send(query.length + ' record' + (query.length === 1 ? '' : 's')
+		+ ' found!\n' + result);
+};
+
 module.exports.soundFragment = function(client, message) {
 	const combined = message.content.slice(config.prefix.length);
-	if(soundDB.prepare('SELECT count(*) FROM aliases WHERE alias = ? OR filename = ?')
-		.get(combined, combined)['count(*)']
-		&& message.guild) {
+	if(message.guild && soundDB.prepare('SELECT count(*) FROM aliases WHERE alias = ? OR filename = ?')
+		.get(combined, combined)['count(*)']) {
 		const voiceChannel = message.member.voice.channel;
 		const filename = soundDB.prepare('SELECT filename FROM aliases WHERE alias = ? OR filename = ?')
 			.get(combined, combined).filename;

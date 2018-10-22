@@ -26,13 +26,18 @@ client.on('message', async (message) => {
 	}
 	const command = message.content.slice(config.prefix.length).split(' ');
 	switch(command[0].toLowerCase()) {
+		case 'alias':
+			if(message.author.id === config.admin) {
+				soundCommands.alias(message);
+			}
+			break;
 		case 'dbsize':
 			soundCommands.dbSize(message);
 			break;
 		case 'disconnect':
 			if(message.author.id === config.admin) {
 				await Promise.all(client.voiceConnections.map(async (connection) => await connection.disconnect()));
-				await message.channel.send('Disconnecting! Have a good day!');
+				console.log('Disconnecting! Have a good day!');
 				client.destroy();
 			}
 			break;
