@@ -83,6 +83,9 @@ module.exports.prepareSound = function(client) {
 		soundDB.pragma('journal_mode = wal');
 		console.log('Sound DB created!');
 	}
+	if(!fs.existsSync(config.SoundDirectory)) {
+		fs.mkdirSync(config.SoundDirectory);
+	}
 	const checkSound = soundDB.prepare('SELECT count(*) FROM sounds WHERE filename = ?');
 	const addSound = soundDB.prepare('INSERT OR REPLACE INTO sounds (filename, description, timesPlayed) VALUES (@filename, @description, @timesPlayed);');
 	const addAlias = soundDB.prepare('INSERT OR REPLACE INTO aliases (alias, filename) VALUES (@alias, @filename);');
