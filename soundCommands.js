@@ -58,7 +58,7 @@ module.exports.mostPlayed = async function(message) {
 
 module.exports.mostPlayedDetailed = async function(message) {
 	const query = await soundDB.prepare('SELECT * FROM sounds ORDER BY timesPlayed DESC').all();
-	const result = module.exports.printSoundQuery(query);
+	const result = await module.exports.printSoundQuery(query);
 	message.channel.send('Most Played Sound Clips:\n' + result);
 };
 
@@ -66,7 +66,7 @@ module.exports.search = async function(message) {
 	const query = await soundDB.prepare('SELECT * FROM sounds WHERE ' +
 	'LOWER(filename || \' \' || description) LIKE ?')
 		.all('%' + message.content.split(' ').slice(1).join(' ').toLowerCase() + '%');
-	const result = module.exports.printSoundQuery(query);
+	const result = await module.exports.printSoundQuery(query);
 	// 10 results maximum for now... will adjust later?
 	message.channel.send(query.length + ' record' + (query.length === 1 ? '' : 's')
 		+ ' found!\n' + result);
