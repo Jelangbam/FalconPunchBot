@@ -1,3 +1,6 @@
+/*
+File that handles the commands related to the audio functionality of the bot.
+*/
 'use strict';
 const SQLite = require('better-sqlite3');
 const config = require('./config.json');
@@ -7,13 +10,14 @@ const audioHandler = require('./audioHandler.js');
 /*
 Takes in a soundDB query using the all() and
 returns string with filename, times played, alias, and description
+@param {filename, description, timesPlayed} query
 */
-function printSoundQuery(query) {
+async function printSoundQuery(query) {
 	let result = '';
 	for(let i = 0; i < Math.min(query.length, 10); i++) {
 		result += (i + 1) + '. ' + query[i].filename + ': ' + query[i].description + '\n'
 			+ 'Aliases: ';
-		const aliases = soundDB.prepare('SELECT * FROM aliases WHERE filename = ?')
+		const aliases = await soundDB.prepare('SELECT * FROM aliases WHERE filename = ?')
 			.all(query[i].filename);
 		for(const answer of aliases) {
 			result += answer.alias + ', ';
@@ -25,6 +29,7 @@ function printSoundQuery(query) {
 /*
 Takes in a soundDB query using the all() and
 returns string with just filename and times played
+@param [{filename, description, timesPlayed}] query
 */
 function printShortSoundQuery(query) {
 	let result = '';

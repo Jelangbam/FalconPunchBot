@@ -31,7 +31,7 @@ client.on('message', async (message) => {
 			break;
 		case 'disconnect':
 			if(message.author.id === config.admin) {
-				client.voiceConnections.map(connection => connection.disconnect());
+				await Promise.all(client.voiceConnections.map(async (connection) => await connection.disconnect()));
 				await message.channel.send('Disconnecting! Have a good day!');
 				client.destroy();
 			}
