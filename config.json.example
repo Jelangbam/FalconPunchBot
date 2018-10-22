@@ -1,0 +1,12 @@
+{
+	"admin": "INSER YOUR USER ID HERE",
+	"prefix": "-",
+	"soundDB": "./sounds.sqlite",
+	"soundDirectory": "./sounds/",
+	"soundSettings": {
+		"volume": 0.33,
+		"passes": 3
+	},
+	"token": "INSERT YOUR TOKEN HERE",
+	"userDB": "./users.sqlite"
+}
