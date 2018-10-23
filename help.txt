@@ -1,4 +1,5 @@
--------------------------------------------------------------------------------
+```
+----------------------------------------------------------------------------------------------
 General:
 	help: Displays this help... you didn't need this here, right?
 	part: Leaves the voice channel, ending any sound file and clearing queue.
@@ -13,4 +14,5 @@ For Owner:
 	alias add "alias" "filename": adds alias to filename
 	alias remove "alias": removes alias
 	description "description" "filename": Changes the description of filename
---------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------
+```
