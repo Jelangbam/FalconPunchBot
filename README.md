@@ -10,8 +10,8 @@ Currently supports:
 * Tracking: Tracks the most played clips from the bot. 
 
 ## Prerequisites
-*Node v10 or later
-*Microsoft Build Tools 2015
+* Node v10 or later
+* Microsoft Build Tools 2015
 
 ## Installation and Configuration
 This is a personal bot for my own uses, but if you want to try it out:
@@ -20,8 +20,8 @@ This is a personal bot for my own uses, but if you want to try it out:
 * Take note of `soundDirectory`: Change it if you wish, then create the folder. For example if you have `"soundDirectory": "./clips/",` then create a clips folder in the root directory
 * Add your sounds to the directory!
 * Run the bot once, it should state the files added and "Bot Started!" if it works!
-* If you wish to change the descriptions, use a SQLite DB viewer such as [this](https://sqlitebrowser.org/). Go to "sounds" table and edit the description columns. 
-* Add aliases for sound files with the built in command on the bot -alias add
+* You can update aliases or descriptions using the commands -alias add "*alias*" "*filename*", -alias remove "*alias*", -description "*description" "*filename*"
+* If you wish to change the descriptions or add aliases through the soundDB file, use a SQLite DB viewer such as [this](https://sqlitebrowser.org/). Go to "sounds" table and edit the description columns or go to the "alias" table and add a new row with the new alias with filename.
 
 ## License
 This project is licensed under the MIT License - see the LICENSE.md file for details

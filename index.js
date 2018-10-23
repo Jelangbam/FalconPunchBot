@@ -41,8 +41,13 @@ client.on('message', async (message) => {
 				client.destroy();
 			}
 			break;
+		case 'description':
+			if(message.author.id === config.admin) {
+				soundCommands.modifyDescription(message);
+			}
+			break;
 		case 'help':
-			message.channel.send(fs.readFileSync('./commands.txt').toString('utf-8'));
+			message.channel.send(fs.readFileSync('./help.txt').toString('utf-8'));
 			break;
 		case 'mostplayed':
 			soundCommands.mostPlayed(message);

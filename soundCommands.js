@@ -56,15 +56,19 @@ returns string with filename, times played, alias, and description
 */
 async function printSoundQuery(query) {
 	let result = '';
-	for(let i = 0; i < Math.min(query.length, 10); i++) {
-		result += (i + 1) + '. ' + query[i].filename + ': ' + query[i].description + '\n'
-			+ 'Aliases: ';
-		const aliases = await soundDB.prepare('SELECT * FROM aliases WHERE filename = ?')
-			.all(query[i].filename);
-		for(const answer of aliases) {
-			result += answer.alias + ', ';
+	if(query.length > 0) {
+		result += '```';
+		for(let i = 0; i < Math.min(query.length, 10); i++) {
+			result += (i + 1) + '. ' + query[i].filename + ': ' + query[i].description + '\n'
+				+ 'Aliases: ';
+			const aliases = await soundDB.prepare('SELECT * FROM aliases WHERE filename = ?')
+				.all(query[i].filename);
+			for(const answer of aliases) {
+				result += answer.alias + ', ';
+			}
+			result = result.slice(0, -2) + ' | Times Played: ' + query[i].timesPlayed + '\n' ;
 		}
-		result = result.slice(0, -2) + ' | Times Played:' + query[i].timesPlayed + '\n' ;
+		result += '```';
 	}
 	return result;
 }
@@ -76,9 +80,13 @@ returns string with just filename and times played
 */
 function printShortSoundQuery(query) {
 	let result = '';
-	for(let i = 0; i < Math.min(query.length, 20); i++) {
-		result += (i + 1) + '. ' + query[i].filename + ': ' + query[i].timesPlayed + ' time'
-			+ (query[i].timesPlayed === 1 ? '' : 's') + '\n';
+	if(query.length > 0) {
+		result += '```';
+		for(let i = 0; i < Math.min(query.length, 20); i++) {
+			result += (i + 1) + '. ' + query[i].filename + ': ' + query[i].timesPlayed + ' time'
+				+ (query[i].timesPlayed === 1 ? '' : 's') + '\n';
+		}
+		result += '```';
 	}
 	return result;
 }
@@ -106,6 +114,24 @@ module.exports.alias = function(message) {
 module.exports.dbSize = function(message) {
 	message.channel.send(soundDB.prepare('SELECT count(*) FROM sounds')
 		.get()['count(*)']);
+};
+
+module.exports.modifyDescription = async function(message) {
+	const fragments = message.content.slice(config.prefix.length).split(' "');
+	if(fragments.length < 3) {
+		message.channel.send('Invalid arguments! usage:' + config.prefix + 'description "*description*" "*filename*"');
+		return;
+	}
+	const filename = fragments.pop().slice(0, -1);
+	fragments.shift();
+	const description = fragments.join(' "').slice(0, -1);
+	const fileQuery = await soundDB.prepare('SELECT * FROM sounds WHERE filename = ?').get(filename);
+	if(!fileQuery) {
+		message.channel.send('Error: File not found!');
+		return;
+	}
+	soundDB.prepare('UPDATE sounds SET description = ? WHERE filename = ?').run(description, filename);
+	message.channel.send('Description of "' + filename + '" changed to "' + description + '"!');
 };
 
 module.exports.mostPlayed = async function(message) {

@@ -1,11 +1,16 @@
 -------------------------------------------------------------------------------
 General:
 	help: Displays this help... you didn't need this here, right?
-	part: Leaves the voice channel, ending any sound file and clearing queue
+	part: Leaves the voice channel, ending any sound file and clearing queue.
 Audio Related:
 	dbsize: Shows number of soundclips in database.
 	mostPlayed: Lists the top played soundclips.
 	mostPlayedDetailed: Detailed list of top played soundclips
 	search <*parameter*>: Search for soundclips related to <*parameter*>. Not case-sensitive.
 	<Sound's Alias or Name>: Plays the requested soundclip, case-sensitive!
+For Owner:
+	disconnect: Gracefully shuts down the bot.
+	alias add "alias" "filename": adds alias to filename
+	alias remove "alias": removes alias
+	description "description" "filename": Changes the description of filename
 --------------------------------------------------------------------------------------------
