@@ -56,6 +56,7 @@ client.on('message', async (message) => {
 			soundCommands.mostPlayedDetailed(message);
 			break;
 		case 'part':
+		case 'leave':
 			if(message.guild && (message.member.voice.channel === client.voiceConnections.get(message.guild.id).channel)) {
 				client.voiceConnections.get(message.guild.id).disconnect();
 				client.audioQueue.set(message.guild.id, []);

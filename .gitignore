@@ -4,6 +4,7 @@ sounds.sqlite
 sounds.sqlite-shm
 sounds.sqlite-wal
 sounds
+update.txt
 
 # Logs
 logs

@@ -146,9 +146,9 @@ module.exports.mostPlayedDetailed = async function(message) {
 	message.channel.send('Most Played Sound Clips:\n' + result);
 };
 
-module.exports.prepareSound = function(client) {
-	const soundCheck = soundDB.prepare('SELECT count(*) FROM sqlite_master WHERE type=\'table\' AND name=\'sounds\';').get();
-	if(!soundCheck['count(*)']) {
+module.exports.prepareSound = async function(client) {
+	const soundCheck = soundDB.prepare('SELECT 1 FROM sqlite_master WHERE type=\'table\' AND name=\'sounds\';').get();
+	if(!soundCheck) {
 		soundDB.prepare('CREATE TABLE sounds (filename TEXT PRIMARY KEY, description TEXT, timesPlayed INTEGER);').run();
 		soundDB.prepare('CREATE UNIQUE INDEX idx_filename ON sounds (filename);').run();
 		soundDB.prepare('CREATE TABLE aliases (alias TEXT PRIMARY KEY, filename TEXT);').run();
@@ -157,15 +157,34 @@ module.exports.prepareSound = function(client) {
 		soundDB.pragma('journal_mode = wal');
 		console.log('Sound DB created!');
 	}
-	const checkSound = soundDB.prepare('SELECT count(*) FROM sounds WHERE filename = ?');
+	const checkSound = soundDB.prepare('SELECT 1 FROM sounds WHERE filename = ?');
 	const addSound = soundDB.prepare('INSERT OR REPLACE INTO sounds (filename, description, timesPlayed) VALUES (@filename, @description, @timesPlayed);');
 	const addAlias = soundDB.prepare('INSERT OR REPLACE INTO aliases (alias, filename) VALUES (@alias, @filename);');
 	for(const file of fs.readdirSync(config.soundDirectory)) {
-		if(/.*(?:wav|mp3|ogg)/.test(file) && !(checkSound.get(file)['count(*)'])) {
-			addSound.run({ filename: file, description: 'Change Me', timesPlayed: 0 });
-			addAlias.run({ alias: `${file.slice(0, -4)}`, filename: file });
+		if(/.*(?:wav|mp3|ogg)/.test(file) && !(checkSound.get(file))) {
+			await addSound.run({ filename: file, description: 'Change Me', timesPlayed: 0 });
+			await addAlias.run({ alias: `${file.slice(0, -4)}`, filename: file });
 			console.log('added ' + file + ' to database!');
 		}
+	}
+	if(fs.existsSync('./update.txt')) {
+		const readline = require('readline');
+		const rl = readline.createInterface({
+			input: fs.createReadStream('./update.txt'),
+			crlfDelay: Infinity,
+		});
+		rl.on('line', (line) => {
+			const parts = line.split(',');
+			const filename = parts[0] + '.' + parts[1];
+			const description = parts.slice(2).join(',');
+			if(soundDB.prepare('SELECT 1 FROM sounds WHERE filename = ?').get(filename)) {
+				soundDB.prepare('UPDATE sounds SET description = ? WHERE filename = ?').run(description, filename);
+				console.log('Successfully updated ' + filename + ' with description: ' + description);
+			}
+			else {
+				console.log('Failed to find file ' + filename + '.');
+			}
+		});
 	}
 	client.guilds.map(guild => client.audioQueue.set(guild.id, []));
 };
@@ -177,15 +196,15 @@ module.exports.search = async function(message) {
 	const result = await module.exports.printSoundQuery(query);
 	// 10 results maximum for now... will adjust later?
 	message.channel.send(query.length + ' record' + (query.length === 1 ? '' : 's')
-		+ ' found!\n' + result);
+		+ ' found!' + (query.length > 10 ? 'Displaying top 10 results:' : '') + '\n' + result);
 };
 
 module.exports.soundFragment = function(client, message) {
-	const combined = message.content.slice(config.prefix.length);
-	if(message.guild && soundDB.prepare('SELECT count(*) FROM aliases WHERE alias = ? OR filename = ?')
-		.get(combined, combined)['count(*)']) {
+	const combined = message.content.slice(config.prefix.length).toLowerCase();
+	if(message.guild && soundDB.prepare('SELECT 1 FROM aliases WHERE LOWER(alias) = ? OR LOWER(filename) = ?')
+		.get(combined, combined)) {
 		const voiceChannel = message.member.voice.channel;
-		const filename = soundDB.prepare('SELECT filename FROM aliases WHERE alias = ? OR filename = ?')
+		const filename = soundDB.prepare('SELECT filename FROM aliases WHERE LOWER(alias) = ? OR LOWER(filename) = ?')
 			.get(combined, combined).filename;
 		const fullPath = config.soundDirectory + filename;
 		if(!voiceChannel) {
