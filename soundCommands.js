@@ -7,6 +7,7 @@ const config = require('./config.json');
 const soundDB = new SQLite(config.soundDB);
 const fs = require('fs');
 const audioHandler = require('./audioHandler.js');
+const Discord = require('discord.js');
 
 /*
 message.content should have the format: -add alias "alias" "filename"
@@ -20,8 +21,8 @@ async function aliasAdd(message) {
 	}
 	const alias = fragments[1].slice(0, -1);
 	const filename = fragments[2].slice(0, -1);
-	const fileQuery = await soundDB.prepare('SELECT * FROM sounds WHERE filename = ?').get(filename);
-	const aliasQuery = await soundDB.prepare('SELECT * FROM aliases WHERE alias = ?').get(alias);
+	const fileQuery = await soundDB.prepare('SELECT 1 FROM sounds WHERE filename = ?').get(filename);
+	const aliasQuery = await soundDB.prepare('SELECT 1 FROM aliases WHERE alias = ?').get(alias);
 	if(aliasQuery) {
 		message.channel.send('Error: Alias already used by ' + aliasQuery.filename);
 		return;
@@ -54,11 +55,11 @@ Takes in a soundDB query using the all() and
 returns string with filename, times played, alias, and description
 @param [{filename, description, timesPlayed}] query
 */
-async function printSoundQuery(query) {
+async function printSoundQuery(query, offset = 0) {
 	let result = '';
 	if(query.length > 0) {
 		result += '```';
-		for(let i = 0; i < Math.min(query.length, 10); i++) {
+		for(let i = offset; i < Math.min(query.length, 10 + offset); i++) {
 			result += (i + 1) + '. ' + query[i].filename + ': ' + query[i].description + '\n'
 				+ 'Aliases: ';
 			const aliases = await soundDB.prepare('SELECT * FROM aliases WHERE filename = ?')
@@ -116,7 +117,7 @@ module.exports.dbSize = function(message) {
 		.get()['count(*)']);
 };
 
-module.exports.modifyDescription = async function(message) {
+module.exports.modifyDescription = function(message) {
 	const fragments = message.content.slice(config.prefix.length).split(' "');
 	if(fragments.length < 3) {
 		message.channel.send('Invalid arguments! usage:' + config.prefix + 'description "*description*" "*filename*"');
@@ -125,8 +126,7 @@ module.exports.modifyDescription = async function(message) {
 	const filename = fragments.pop().slice(0, -1);
 	fragments.shift();
 	const description = fragments.join(' "').slice(0, -1);
-	const fileQuery = await soundDB.prepare('SELECT * FROM sounds WHERE filename = ?').get(filename);
-	if(!fileQuery) {
+	if(!soundDB.prepare('SELECT 1 FROM sounds WHERE filename = ?').get(filename)) {
 		message.channel.send('Error: File not found!');
 		return;
 	}
@@ -196,10 +196,24 @@ module.exports.search = async function(message) {
 	const query = await soundDB.prepare('SELECT * FROM sounds WHERE ' +
 	'LOWER(filename || \' \' || description) LIKE ?')
 		.all('%' + message.content.split(' ').slice(1).join(' ').toLowerCase() + '%');
-	const result = await module.exports.printSoundQuery(query);
-	// 10 results maximum for now... will adjust later?
-	message.channel.send(query.length + ' record' + (query.length === 1 ? '' : 's')
-		+ ' found!' + (query.length > 10 ? 'Displaying top 10 results:' : '') + '\n' + result);
+	async function displayResult(offset) {
+		const result = await module.exports.printSoundQuery(query, offset);
+		// 10 results maximum for now... will adjust later?
+		message.channel.send(query.length + ' record' + (query.length === 1 ? '' : 's')
+			+ ' found! ' + (query.length > (10 + offset) ? 'Type `next` for next page:' : '') + '\n' + result);
+		if(query.length > 10 + offset) {
+			const collector = new Discord.MessageCollector(message.channel,
+				(newMessage) =>	(newMessage.author.id === message.author.id),
+				{ max: 20, maxMatches: 1 });
+			collector.on('collect', (newMessage) => {
+				if(newMessage.content.toLowerCase() === 'next') {
+					displayResult(offset + 10);
+				}
+				collector.stop();
+			});
+		}
+	}
+	displayResult(0);
 };
 
 module.exports.soundFragment = function(client, message) {

@@ -17,27 +17,22 @@ const playNext = async function(client, guildId) {
 	const filename = client.audioQueue.get(guildId)[0].filename;
 	const currentVoiceConnection = client.voiceConnections.get(guildId);
 	client.audioQueue.get(guildId).shift();
+	let dispatcher;
 	if(!(currentVoiceConnection)) {
 		const newConnection = await voiceChannel.join();
-		const dispatcher = newConnection.play(filename, config.soundSettings);
-		dispatcher.on('end', () => {
-			module.exports.playNext(client, guildId);
-		});
+		dispatcher = newConnection.play(filename, config.soundSettings);
 	}
 	else if(currentVoiceConnection.channel.id !== voiceChannel.id) {
 		currentVoiceConnection.disconnect();
 		const newConnection = await voiceChannel.join();
-		const dispatcher = newConnection.play(filename, config.soundSettings);
-		dispatcher.on('end', () => {
-			module.exports.playNext(client, guildId);
-		});
+		dispatcher = newConnection.play(filename, config.soundSettings);
 	}
 	else{
-		const dispatcher = client.voiceConnections.get(guildId).play(filename, config.soundSettings);
-		dispatcher.on('end', () => {
-			module.exports.playNext(client, guildId);
-		});
+		dispatcher = client.voiceConnections.get(guildId).play(filename, config.soundSettings);
 	}
+	dispatcher.on('end', () => {
+		module.exports.playNext(client, guildId);
+	});
 };
 
 module.exports = {
