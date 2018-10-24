@@ -161,7 +161,7 @@ module.exports.prepareSound = async function(client) {
 	const addSound = soundDB.prepare('INSERT OR REPLACE INTO sounds (filename, description, timesPlayed) VALUES (@filename, @description, @timesPlayed);');
 	const addAlias = soundDB.prepare('INSERT OR REPLACE INTO aliases (alias, filename) VALUES (@alias, @filename);');
 	for(const file of fs.readdirSync(config.soundDirectory)) {
-		if(/.*(?:wav|mp3|ogg)/.test(file) && !(checkSound.get(file))) {
+		if(/.*(?:\.wav|\.mp3|\.ogg)/.test(file) && !(checkSound.get(file))) {
 			await addSound.run({ filename: file, description: 'Change Me', timesPlayed: 0 });
 			await addAlias.run({ alias: `${file.slice(0, -4)}`, filename: file });
 			console.log('added ' + file + ' to database!');
@@ -184,6 +184,9 @@ module.exports.prepareSound = async function(client) {
 			else {
 				console.log('Failed to find file ' + filename + '.');
 			}
+		});
+		fs.rename('./update.txt', './completed-update.txt', function(err) {
+			if (err) console.log('ERROR: ' + err);
 		});
 	}
 	client.guilds.map(guild => client.audioQueue.set(guild.id, []));
