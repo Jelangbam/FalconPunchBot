@@ -1,6 +1,7 @@
 # FalconPunchBot
 
-FalconPunchBot is a personal Discord sound bot using [Discord.js](https://discord.js.org/) that is primarily for playing short soundclips to voice channels. 
+FalconPunchBot is a personal Discord sound bot using [Discord.js](https://discord.js.org/) that is primarily for playing short soundclips to voice channels.
+I have only tested the bot on Windows, but should work on any OS. 
 
 ## Features
 Currently supports:
@@ -11,11 +12,11 @@ Currently supports:
 
 ## Prerequisites
 * Node v10 or later
-* Microsoft Build Tools 2015
+* Python 2.7 and C++ compiler for `node-gyp` (for Windows: Microsoft Build Tools 2015 includes necessary dependencies)
 
 ## Installation and Configuration
 This is a personal bot for my own uses, but if you want to try it out:
-* From command line (cmd or PowerShell), run `npm install`
+* From command line, run `npm install`
 * Open `config.json.example` in a text editor and edit the `admin` and `token` field with your user ID ex.(123456789012345678) and your bot's secret token.
 * Take note of `soundDirectory`: Change it if you wish, then create the folder. For example if you have `"soundDirectory": "./clips/",` then create a clips folder in the root directory
 * Add your sounds to the directory!

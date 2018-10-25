@@ -7,11 +7,16 @@ const config = require('./config.json');
 const fs = require('fs');
 const soundCommands = require('./soundCommands.js');
 
+client.on('error', (error) => console.log(error));
+
+// Create soundDB if not there, check for new audio files, and create a queue.
 client.on('ready', async () => {
 	await soundCommands.prepareSound(client);
 	console.log('Bot Started!');
 });
 
+
+// Handle the audio queue for when the bot joins and leaves servers
 client.on('guildCreate', (guild) => {
 	client.audioQueue.set(guild.id, []);
 });
@@ -20,6 +25,7 @@ client.on('guildDelete', (guild) => {
 	client.audioQueue.delete(guild.id);
 });
 
+// Command Handling
 client.on('message', async (message) => {
 	if(message.author.bot || message.content.indexOf(config.prefix) !== 0) {
 		return;
@@ -68,6 +74,15 @@ client.on('message', async (message) => {
 		default:
 			soundCommands.soundFragment(client, message);
 			break;
+	}
+});
+
+
+// Force bot to leave if it is the last one in the channel.
+client.on('voiceStateUpdate', (oldState) => {
+	const voiceConnection = client.voiceConnections.get(oldState.guild.id);
+	if(voiceConnection && voiceConnection.channel.members.size === 1) {
+		voiceConnection.disconnect();
 	}
 });
 
