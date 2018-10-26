@@ -22,7 +22,7 @@ This is a personal bot for my own uses, but if you want to try it out:
 * Add your sounds to the directory!
 * Run the bot once, it should state the files added and "Bot Started!" if it works!
 * You can update aliases or descriptions using the commands -alias add "*alias*" "*filename*", -alias remove "*alias*", -description "*description*" "*filename*"
-* If you wish to change the descriptions or add aliases through the soundDB file, use a SQLite DB viewer such as [this](https://sqlitebrowser.org/). Go to "sounds" table and edit the description columns or go to the "alias" table and add a new row with the new alias with filename.
+* If you wish to change the descriptions or add aliases through the soundDB file, use a SQLite DB viewer such as [DB Browser for SQLite](https://sqlitebrowser.org/). Go to "sounds" table and edit the description columns or go to the "alias" table and add a new row with the new alias with filename.
 * If you wish to change the descriptions through an update text file, see `update.txt.example`, an example line would be `joe,mp3,this is joe saying hi`
 ## License
 This project is licensed under the MIT License - see the LICENSE.md file for details

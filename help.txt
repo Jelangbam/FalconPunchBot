@@ -7,9 +7,10 @@ Audio Related:
 	dbsize: Shows number of soundclips in database.
 	mostPlayed: Lists the top played soundclips.
 	mostPlayedDetailed: Detailed list of top played soundclips
-	search <*parameter*>: Search for soundclips related to <*parameter*>. Not case-sensitive.
-	<Sound's Alias or Name>: Plays the requested soundclip, case-sensitive!
+	search <*parameter*>: Search for soundclips related to <*parameter*>.
+	<Sound's Alias or Name>: Plays the requested soundclip.
 For Owner:
+	clearData: resets the Times Played for each file.
 	disconnect: Gracefully shuts down the bot.
 	alias add "alias" "filename": adds alias to filename
 	alias remove "alias": removes alias

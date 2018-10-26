@@ -52,6 +52,11 @@ client.on('message', async (message) => {
 				soundCommands.modifyDescription(message);
 			}
 			break;
+		case 'cleardata':
+			if(message.author.id === config.admin) {
+				soundCommands.clearData(message);
+			}
+			break;
 		case 'help':
 			message.channel.send(fs.readFileSync('./help.txt').toString('utf-8'));
 			break;
@@ -76,7 +81,6 @@ client.on('message', async (message) => {
 			break;
 	}
 });
-
 
 // Force bot to leave if it is the last one in the channel.
 client.on('voiceStateUpdate', (oldState) => {

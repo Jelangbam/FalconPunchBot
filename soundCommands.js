@@ -112,6 +112,11 @@ module.exports.alias = function(message) {
 	message.channel.send('Invalid alias command!');
 };
 
+module.exports.clearData = function(message) {
+	soundDB.prepare('UPDATE sounds SET timesPlayed = 0').run();
+	message.channel.send('Sound data cleared!');
+};
+
 module.exports.dbSize = function(message) {
 	message.channel.send(soundDB.prepare('SELECT count(*) FROM sounds')
 		.get()['count(*)']);
@@ -199,7 +204,7 @@ module.exports.search = async function(message) {
 	async function displayResult(offset) {
 		const result = await module.exports.printSoundQuery(query, offset);
 		// 10 results maximum for now... will adjust later?
-		message.channel.send(query.length + ' record' + (query.length === 1 ? '' : 's')
+		await message.channel.send(query.length + ' record' + (query.length === 1 ? '' : 's')
 			+ ' found! ' + (query.length > (10 + offset) ? 'Type `next` for next page:' : '') + '\n' + result);
 		if(query.length > 10 + offset) {
 			const collector = new Discord.MessageCollector(message.channel,
