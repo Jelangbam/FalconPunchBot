@@ -76,6 +76,14 @@ client.on('message', async (message) => {
 		case 'search':
 			soundCommands.search(message);
 			break;
+		case 'searchword':
+			soundCommands.searchWord(message);
+			break;
+		case 'update':
+			if(message.author.id === config.admin) {
+				await soundCommands.updateSound();
+			}
+			break;
 		default:
 			soundCommands.soundFragment(client, message);
 			break;

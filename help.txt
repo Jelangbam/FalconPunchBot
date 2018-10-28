@@ -8,6 +8,7 @@ Audio Related:
 	mostPlayed: Lists the top played soundclips.
 	mostPlayedDetailed: Detailed list of top played soundclips
 	search <*parameter*>: Search for soundclips related to <*parameter*>.
+	searchWord <*parameter*>: Search for soundclips containing the exact word in the description or filename
 	<Sound's Alias or Name>: Plays the requested soundclip.
 For Owner:
 	clearData: resets the Times Played for each file.
@@ -15,5 +16,6 @@ For Owner:
 	alias add "alias" "filename": adds alias to filename
 	alias remove "alias": removes alias
 	description "description" "filename": Changes the description of filename
+	update: Rescan directory for new files.
 ----------------------------------------------------------------------------------------------
 ```

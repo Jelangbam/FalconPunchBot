@@ -19,13 +19,24 @@ const playNext = async function(client, guildId) {
 	client.audioQueue.get(guildId).shift();
 	let dispatcher;
 	if(!(currentVoiceConnection)) {
-		const newConnection = await voiceChannel.join();
-		dispatcher = newConnection.play(filename, config.soundSettings);
+		try {
+			const newConnection = await voiceChannel.join();
+			dispatcher = newConnection.play(filename, config.soundSettings);
+		}
+		catch(error) {
+			console.log(error);
+		}
 	}
 	else if(currentVoiceConnection.channel.id !== voiceChannel.id) {
-		currentVoiceConnection.disconnect();
-		const newConnection = await voiceChannel.join();
-		dispatcher = newConnection.play(filename, config.soundSettings);
+		try {
+			currentVoiceConnection.disconnect();
+			const newConnection = await voiceChannel.join();
+			dispatcher = newConnection.play(filename, config.soundSettings);
+		}
+		catch(error) {
+			console.log(error);
+		}
+
 	}
 	else{
 		dispatcher = client.voiceConnections.get(guildId).play(filename, config.soundSettings);

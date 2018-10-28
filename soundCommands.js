@@ -198,9 +198,37 @@ module.exports.prepareSound = async function(client) {
 };
 
 module.exports.search = async function(message) {
-	const query = await soundDB.prepare('SELECT * FROM sounds WHERE ' +
-	'LOWER(filename || \' \' || description) LIKE ?')
-		.all('%' + message.content.split(' ').slice(1).join(' ').toLowerCase() + '%');
+	const query = await soundDB.prepare('SELECT aliases.filename, sounds.description, sounds.timesPlayed, '
+		+ 'GROUP_CONCAT(aliases.alias) as list FROM aliases ' +
+		'INNER JOIN sounds ON aliases.filename = sounds.filename ' +
+		'GROUP BY aliases.filename HAVING (aliases.filename || \' \' || description || \' \' || list) LIKE ?')
+		.all('%' + message.content.split(' ').slice(1).join(' ') + '%');
+	async function displayResult(offset) {
+		const result = await module.exports.printSoundQuery(query, offset);
+		// 10 results maximum for now... will adjust later?
+		await message.channel.send(query.length + ' record' + (query.length === 1 ? '' : 's')
+			+ ' found! ' + (query.length > (10 + offset) ? 'Type `next` for next page:' : '') + '\n' + result);
+		if(query.length > 10 + offset) {
+			const collector = new Discord.MessageCollector(message.channel,
+				(newMessage) =>	(newMessage.author.id === message.author.id),
+				{ max: 20, maxMatches: 1 });
+			collector.on('collect', (newMessage) => {
+				if(newMessage.content.toLowerCase() === 'next') {
+					displayResult(offset + 10);
+				}
+				collector.stop();
+			});
+		}
+	}
+	displayResult(0);
+};
+
+module.exports.searchWord = async function(message) {
+	const query = await soundDB.prepare('SELECT aliases.filename, sounds.description, sounds.timesPlayed, '
+		+ 'GROUP_CONCAT(aliases.alias, \', \') as list FROM aliases ' +
+		'INNER JOIN sounds ON aliases.filename = sounds.filename ' +
+		'GROUP BY aliases.filename HAVING LOWER(aliases.filename || \' \' || description || \' \' || list || \' \') GLOB ?')
+		.all('*[^a-z0-9]' + message.content.split(' ').slice(1).join(' ').toLowerCase() + '[^a-z0-9]*');
 	async function displayResult(offset) {
 		const result = await module.exports.printSoundQuery(query, offset);
 		// 10 results maximum for now... will adjust later?
@@ -243,6 +271,19 @@ module.exports.soundFragment = function(client, message) {
 			soundDB.prepare('DELETE FROM aliases WHERE filename = ?').run(filename);
 			message.channel.send('Sound file not found, sorry about that!'
 				+ ' I deleted the command from the list to make you feel better.');
+		}
+	}
+};
+
+module.exports.updateSound = async function() {
+	const checkSound = soundDB.prepare('SELECT 1 FROM sounds WHERE filename = ?');
+	const addSound = soundDB.prepare('INSERT OR REPLACE INTO sounds (filename, description, timesPlayed) VALUES (@filename, @description, @timesPlayed);');
+	const addAlias = soundDB.prepare('INSERT OR REPLACE INTO aliases (alias, filename) VALUES (@alias, @filename);');
+	for(const file of fs.readdirSync(config.soundDirectory)) {
+		if(/.*(?:\.wav|\.mp3|\.ogg)/.test(file) && !(checkSound.get(file))) {
+			await addSound.run({ filename: file, description: 'Change Me', timesPlayed: 0 });
+			await addAlias.run({ alias: `${file.slice(0, -4)}`, filename: file });
+			console.log('added ' + file + ' to database!');
 		}
 	}
 };
