@@ -1,6 +1,9 @@
 /*
-File that handles the commands related to the audio functionality of the bot.
+This file handles all commands related to sound features.
+Commands handled: "alias add", "alias remove", "cleardata", "dbsize", "description",
+"mostplayed", "mostplayeddetailed", "search", "searchword", "update"
 */
+
 'use strict';
 const SQLite = require('better-sqlite3');
 const config = require('./config.json');
@@ -91,7 +94,9 @@ function printShortSoundQuery(query) {
 	}
 	return result;
 }
-
+/*
+Used to define helper functions for the remaining functions
+*/
 module.exports = {
 	aliasAdd: aliasAdd,
 	aliasRemove: aliasRemove,
@@ -99,6 +104,10 @@ module.exports = {
 	printShortSoundQuery: printShortSoundQuery,
 };
 
+/*
+Handle both "alias add" and "alias remove"
+@param {Discord.Message}
+*/
 module.exports.alias = function(message) {
 	const command = message.content.slice(config.prefix.length).toLowerCase().split(' ');
 	if(command[1] === 'add') {
@@ -112,16 +121,28 @@ module.exports.alias = function(message) {
 	message.channel.send('Invalid alias command!');
 };
 
+/*
+Clears timesPlayed in the database
+@param {Discord.Message}
+*/
 module.exports.clearData = function(message) {
 	soundDB.prepare('UPDATE sounds SET timesPlayed = 0').run();
 	message.channel.send('Sound data cleared!');
 };
 
+/*
+Reports number of sound files in the DB
+@param {Discord.Message}
+*/
 module.exports.dbSize = function(message) {
 	message.channel.send(soundDB.prepare('SELECT count(*) FROM sounds')
 		.get()['count(*)']);
 };
 
+/*
+Modifies description in the database with the filename given.
+@param {Discord.Message}
+*/
 module.exports.modifyDescription = function(message) {
 	const fragments = message.content.slice(config.prefix.length).split(' "');
 	if(fragments.length < 3) {
@@ -139,18 +160,30 @@ module.exports.modifyDescription = function(message) {
 	message.channel.send('Description of "' + filename + '" changed to "' + description + '"!');
 };
 
+/*
+Displays the top 20 most played files into the channel
+@param {Discord.Message}
+*/
 module.exports.mostPlayed = async function(message) {
 	const query = await soundDB.prepare('SELECT * FROM sounds ORDER BY timesPlayed DESC').all();
 	const result = module.exports.printShortSoundQuery(query);
 	message.channel.send('Most Played Sound Clips:\n' + result);
 };
 
+/*
+Displays the 10 most played files in more detail
+@param {Discord.Message}
+*/
 module.exports.mostPlayedDetailed = async function(message) {
 	const query = await soundDB.prepare('SELECT * FROM sounds ORDER BY timesPlayed DESC').all();
 	const result = await module.exports.printSoundQuery(query);
 	message.channel.send('Most Played Sound Clips:\n' + result);
 };
 
+/*
+Startup procedure to create DB and update it with new sound files
+@param {Discord.Client}
+*/
 module.exports.prepareSound = async function(client) {
 	const soundCheck = soundDB.prepare('SELECT 1 FROM sqlite_master WHERE type=\'table\' AND name=\'sounds\';').get();
 	if(!soundCheck) {
@@ -197,15 +230,18 @@ module.exports.prepareSound = async function(client) {
 	client.guilds.map(guild => client.audioQueue.set(guild.id, []));
 };
 
+/*
+Searches DB for given string in aliases, filename, or description
+@param {Discord.Message}
+*/
 module.exports.search = async function(message) {
-	const query = await soundDB.prepare('SELECT aliases.filename, sounds.description, sounds.timesPlayed, '
+	const query = await soundDB.prepare('SELECT aliases.filename, sounds.description, '
 		+ 'GROUP_CONCAT(aliases.alias) as list FROM aliases ' +
 		'INNER JOIN sounds ON aliases.filename = sounds.filename ' +
 		'GROUP BY aliases.filename HAVING (aliases.filename || \' \' || description || \' \' || list) LIKE ?')
 		.all('%' + message.content.split(' ').slice(1).join(' ') + '%');
 	async function displayResult(offset) {
 		const result = await module.exports.printSoundQuery(query, offset);
-		// 10 results maximum for now... will adjust later?
 		await message.channel.send(query.length + ' record' + (query.length === 1 ? '' : 's')
 			+ ' found! ' + (query.length > (10 + offset) ? 'Type `next` for next page:' : '') + '\n' + result);
 		if(query.length > 10 + offset) {
@@ -223,6 +259,10 @@ module.exports.search = async function(message) {
 	displayResult(0);
 };
 
+/*
+Searches DB for given string as an isolated word in aliases, filename, or description
+@param {Discord.Message}
+*/
 module.exports.searchWord = async function(message) {
 	const query = await soundDB.prepare('SELECT aliases.filename, sounds.description, sounds.timesPlayed, '
 		+ 'GROUP_CONCAT(aliases.alias, \', \') as list FROM aliases ' +
@@ -231,7 +271,6 @@ module.exports.searchWord = async function(message) {
 		.all('*[^a-z0-9]' + message.content.split(' ').slice(1).join(' ').toLowerCase() + '[^a-z0-9]*');
 	async function displayResult(offset) {
 		const result = await module.exports.printSoundQuery(query, offset);
-		// 10 results maximum for now... will adjust later?
 		await message.channel.send(query.length + ' record' + (query.length === 1 ? '' : 's')
 			+ ' found! ' + (query.length > (10 + offset) ? 'Type `next` for next page:' : '') + '\n' + result);
 		if(query.length > 10 + offset) {
@@ -249,6 +288,10 @@ module.exports.searchWord = async function(message) {
 	displayResult(0);
 };
 
+/*
+Checks the command for an associated sound file, if it exists then play the clip, otherwise ignore command.
+@param {Discord.Client}, {Discord.Message}
+*/
 module.exports.soundFragment = function(client, message) {
 	const combined = message.content.slice(config.prefix.length).toLowerCase();
 	if(message.guild && soundDB.prepare('SELECT 1 FROM aliases WHERE LOWER(alias) = ? OR LOWER(filename) = ?')
@@ -275,6 +318,9 @@ module.exports.soundFragment = function(client, message) {
 	}
 };
 
+/*
+Checks the sound directory for new sound files.
+*/
 module.exports.updateSound = async function() {
 	const checkSound = soundDB.prepare('SELECT 1 FROM sounds WHERE filename = ?');
 	const addSound = soundDB.prepare('INSERT OR REPLACE INTO sounds (filename, description, timesPlayed) VALUES (@filename, @description, @timesPlayed);');
