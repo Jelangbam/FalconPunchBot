@@ -43,6 +43,7 @@ client.on('message', async (message) => {
 		case 'disconnect':
 			if(message.author.id === config.admin) {
 				await Promise.all(client.voiceConnections.map(async (connection) => await connection.disconnect()));
+				await soundCommands.closeSound();
 				console.log('Disconnecting! Have a good day!');
 				client.destroy();
 			}

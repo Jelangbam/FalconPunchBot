@@ -129,7 +129,12 @@ module.exports.clearData = function(message) {
 	soundDB.prepare('UPDATE sounds SET timesPlayed = 0').run();
 	message.channel.send('Sound data cleared!');
 };
-
+/*
+Closes the sound database for shutdown
+*/
+module.exports.closeSound = async function() {
+	await soundDB.close();
+};
 /*
 Reports number of sound files in the DB
 @param {Discord.Message}
