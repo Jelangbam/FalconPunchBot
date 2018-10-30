@@ -14,7 +14,7 @@ const Discord = require('discord.js');
 
 /*
 message.content should have the format: -add alias "alias" "filename"
-@param {Discord.Message}
+@param {Discord.Message} message
 */
 async function aliasAdd(message) {
 	const fragments = message.content.slice(config.prefix.length).split(' "');
@@ -40,7 +40,7 @@ async function aliasAdd(message) {
 
 /*
 message.content should have the format: -remove alias "alias"
-@param {Discord.Message}
+@param {Discord.Message} message
 */
 async function aliasRemove(message) {
 	const alias = message.content.slice(config.prefix.length).split('"')[1];
@@ -56,7 +56,7 @@ async function aliasRemove(message) {
 /*
 Takes in a soundDB query using the all() and
 returns string with filename, times played, alias, and description
-@param [{filename, description, timesPlayed}] query
+@param [{filename STRING, description STRING, timesPlayed INTEGER}] query
 */
 async function printSoundQuery(query, offset = 0) {
 	let result = '';
@@ -80,7 +80,7 @@ async function printSoundQuery(query, offset = 0) {
 /*
 Takes in a soundDB query using the all() and
 returns string with just filename and times played
-@param [{filename, description, timesPlayed}] query
+@param [{filename STRING, description STRING, timesPlayed INTEGER}] query
 */
 function printShortSoundQuery(query) {
 	let result = '';
@@ -106,7 +106,7 @@ module.exports = {
 
 /*
 Handle both "alias add" and "alias remove"
-@param {Discord.Message}
+@param {Discord.Message} message
 */
 module.exports.alias = function(message) {
 	const command = message.content.slice(config.prefix.length).toLowerCase().split(' ');
@@ -123,7 +123,7 @@ module.exports.alias = function(message) {
 
 /*
 Clears timesPlayed in the database
-@param {Discord.Message}
+@param {Discord.Message} message
 */
 module.exports.clearData = function(message) {
 	soundDB.prepare('UPDATE sounds SET timesPlayed = 0').run();
@@ -137,7 +137,7 @@ module.exports.closeSound = async function() {
 };
 /*
 Reports number of sound files in the DB
-@param {Discord.Message}
+@param {Discord.Message} message
 */
 module.exports.dbSize = function(message) {
 	message.channel.send(soundDB.prepare('SELECT count(*) FROM sounds')
@@ -146,7 +146,7 @@ module.exports.dbSize = function(message) {
 
 /*
 Modifies description in the database with the filename given.
-@param {Discord.Message}
+@param {Discord.Message} message
 */
 module.exports.modifyDescription = function(message) {
 	const fragments = message.content.slice(config.prefix.length).split(' "');
@@ -167,7 +167,7 @@ module.exports.modifyDescription = function(message) {
 
 /*
 Displays the top 20 most played files into the channel
-@param {Discord.Message}
+@param {Discord.Message} message
 */
 module.exports.mostPlayed = async function(message) {
 	const query = await soundDB.prepare('SELECT * FROM sounds ORDER BY timesPlayed DESC').all();
@@ -177,7 +177,7 @@ module.exports.mostPlayed = async function(message) {
 
 /*
 Displays the 10 most played files in more detail
-@param {Discord.Message}
+@param {Discord.Message} message
 */
 module.exports.mostPlayedDetailed = async function(message) {
 	const query = await soundDB.prepare('SELECT * FROM sounds ORDER BY timesPlayed DESC').all();
@@ -187,7 +187,7 @@ module.exports.mostPlayedDetailed = async function(message) {
 
 /*
 Startup procedure to create DB and update it with new sound files
-@param {Discord.Client}
+@param {Discord.Client} client
 */
 module.exports.prepareSound = async function(client) {
 	const soundCheck = soundDB.prepare('SELECT 1 FROM sqlite_master WHERE type=\'table\' AND name=\'sounds\';').get();
@@ -229,7 +229,7 @@ module.exports.prepareSound = async function(client) {
 			}
 		});
 		fs.rename('./update.txt', './completed-update.txt', function(err) {
-			if (err) console.log('ERROR: ' + err);
+			err ? console.log('ERROR: ' + err) : null;
 		});
 	}
 	client.guilds.map(guild => client.audioQueue.set(guild.id, []));
@@ -237,7 +237,7 @@ module.exports.prepareSound = async function(client) {
 
 /*
 Searches DB for given string in aliases, filename, or description
-@param {Discord.Message}
+@param {Discord.Message} message
 */
 module.exports.search = async function(message) {
 	const query = await soundDB.prepare('SELECT aliases.filename, sounds.description, sounds.timesPlayed, '
@@ -266,7 +266,7 @@ module.exports.search = async function(message) {
 
 /*
 Searches DB for given string as an isolated word in aliases, filename, or description
-@param {Discord.Message}
+@param {Discord.Message} message
 */
 module.exports.searchWord = async function(message) {
 	const query = await soundDB.prepare('SELECT aliases.filename, sounds.description, sounds.timesPlayed, '
@@ -295,23 +295,23 @@ module.exports.searchWord = async function(message) {
 
 /*
 Checks the command for an associated sound file, if it exists then play the clip, otherwise ignore command.
-@param {Discord.Client}, {Discord.Message}
+@param {Discord.Client} client
+@param {Discord.Message} message
 */
 module.exports.soundFragment = function(client, message) {
 	const combined = message.content.slice(config.prefix.length).toLowerCase();
 	if(message.guild && soundDB.prepare('SELECT 1 FROM aliases WHERE LOWER(alias) = ? OR LOWER(filename) = ?')
 		.get(combined, combined)) {
-		const voiceChannel = message.member.voice.channel;
 		const filename = soundDB.prepare('SELECT filename FROM aliases WHERE LOWER(alias) = ? OR LOWER(filename) = ?')
 			.get(combined, combined).filename;
 		const fullPath = config.soundDirectory + filename;
-		if(!voiceChannel) {
+		if(!message.member.voice.channel) {
 			message.channel.send('Please connect to a channel first!');
 			return;
 		}
 		if(fs.existsSync(fullPath)) {
 			soundDB.prepare('UPDATE sounds SET timesPlayed = timesPlayed + 1 WHERE filename = ?').run(filename);
-			audioHandler.addAudio(client, voiceChannel, fullPath);
+			audioHandler.addAudio(client, message, fullPath);
 		}
 		else {
 			console.log(filename + ' not found! Deleting related entries.');

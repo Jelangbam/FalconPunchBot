@@ -13,24 +13,27 @@ const playNext = async function(client, guildId) {
 	if(client.audioQueue.get(guildId).length == 0) {
 		return;
 	}
-	const voiceChannel = client.audioQueue.get(guildId)[0].voiceChannel;
+	const message = client.audioQueue.get(guildId)[0].message;
 	const filename = client.audioQueue.get(guildId)[0].filename;
 	const currentVoiceConnection = client.voiceConnections.get(guildId);
 	client.audioQueue.get(guildId).shift();
+	if(config.deleteAfterSound && client.guilds.get(guildId).me.hasPermission('MANAGE_MESSAGES')) {
+		message.delete().catch(console.error);
+	}
 	let dispatcher;
 	if(!(currentVoiceConnection)) {
 		try {
-			const newConnection = await voiceChannel.join();
+			const newConnection = await message.member.voice.channel.join();
 			dispatcher = newConnection.play(filename, config.soundSettings);
 		}
 		catch(error) {
 			console.log(error);
 		}
 	}
-	else if(currentVoiceConnection.channel.id !== voiceChannel.id) {
+	else if(currentVoiceConnection.channel.id !== message.member.voice.channel.id) {
 		try {
 			currentVoiceConnection.disconnect();
-			const newConnection = await voiceChannel.join();
+			const newConnection = await message.member.voice.channel.join();
 			dispatcher = newConnection.play(filename, config.soundSettings);
 		}
 		catch(error) {
@@ -53,13 +56,13 @@ module.exports = {
 /*
 Adds audio file into queue for the guild.
 @param {Discord.Client} client
-@param {Discord.VoiceChannel} voiceChannel
-@param {string} filename
+@param {Discord.Message} message
+@param string filename
 */
-module.exports.addAudio = function(client, voiceChannel, filename) {
-	const guildId = voiceChannel.guild.id;
+module.exports.addAudio = function(client, message, filename) {
+	const guildId = message.member.voice.channel.guild.id;
 	client.audioQueue.get(guildId).push({
-		voiceChannel: voiceChannel,
+		message: message,
 		filename: filename,
 	});
 	if(client.voiceConnections.get(guildId)) {

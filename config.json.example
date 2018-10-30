@@ -1,5 +1,6 @@
 {
 	"admin": "INSERT YOUR USER ID HERE",
+	"deleteAfterSound": true,
 	"prefix": "-",
 	"soundDB": "./sounds.sqlite",
 	"soundDirectory": "./sounds/",
