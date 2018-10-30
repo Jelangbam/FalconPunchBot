@@ -235,7 +235,7 @@ Searches DB for given string in aliases, filename, or description
 @param {Discord.Message}
 */
 module.exports.search = async function(message) {
-	const query = await soundDB.prepare('SELECT aliases.filename, sounds.description, '
+	const query = await soundDB.prepare('SELECT aliases.filename, sounds.description, sounds.timesPlayed, '
 		+ 'GROUP_CONCAT(aliases.alias) as list FROM aliases ' +
 		'INNER JOIN sounds ON aliases.filename = sounds.filename ' +
 		'GROUP BY aliases.filename HAVING (aliases.filename || \' \' || description || \' \' || list) LIKE ?')
