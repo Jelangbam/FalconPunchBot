@@ -94,6 +94,22 @@ function printShortSoundQuery(query) {
 	}
 	return result;
 }
+
+/*
+Checks the sound directory for new sound files.
+*/
+async function updateSoundFiles() {
+	const checkSound = soundDB.prepare('SELECT 1 FROM sounds WHERE filename = ?');
+	const addSound = soundDB.prepare('INSERT OR REPLACE INTO sounds (filename, description, timesPlayed) VALUES (@filename, @description, @timesPlayed);');
+	const addAlias = soundDB.prepare('INSERT OR REPLACE INTO aliases (alias, filename) VALUES (@alias, @filename);');
+	for(const file of fs.readdirSync(config.soundDirectory)) {
+		if(/.*(?:\.wav|\.mp3|\.ogg)/.test(file) && !(checkSound.get(file))) {
+			await addSound.run({ filename: file, description: 'Change Me', timesPlayed: 0 });
+			await addAlias.run({ alias: `${file.slice(0, -4)}`, filename: file });
+			console.log('added ' + file + ' to database!');
+		}
+	}
+}
 /*
 Used to define helper functions for the remaining functions
 */
@@ -102,6 +118,7 @@ module.exports = {
 	aliasRemove: aliasRemove,
 	printSoundQuery: printSoundQuery,
 	printShortSoundQuery: printShortSoundQuery,
+	updateSoundFiles: updateSoundFiles,
 };
 
 /*
@@ -168,20 +185,17 @@ module.exports.modifyDescription = function(message) {
 /*
 Displays the top 20 most played files into the channel
 @param {Discord.Message} message
+@param boolean detailed: should it output detailed stats?
 */
-module.exports.mostPlayed = async function(message) {
+module.exports.mostPlayed = async function(message, detailed) {
 	const query = await soundDB.prepare('SELECT * FROM sounds ORDER BY timesPlayed DESC').all();
-	const result = module.exports.printShortSoundQuery(query);
-	message.channel.send('Most Played Sound Clips:\n' + result);
-};
-
-/*
-Displays the 10 most played files in more detail
-@param {Discord.Message} message
-*/
-module.exports.mostPlayedDetailed = async function(message) {
-	const query = await soundDB.prepare('SELECT * FROM sounds ORDER BY timesPlayed DESC').all();
-	const result = await module.exports.printSoundQuery(query);
+	let result = '';
+	if(detailed) {
+		result = await module.exports.printSoundQuery(query);
+	}
+	else {
+		result = await module.exports.printShortSoundQuery(query);
+	}
 	message.channel.send('Most Played Sound Clips:\n' + result);
 };
 
@@ -190,6 +204,7 @@ Startup procedure to create DB and update it with new sound files
 @param {Discord.Client} client
 */
 module.exports.prepareSound = async function(client) {
+	// check for database
 	const soundCheck = soundDB.prepare('SELECT 1 FROM sqlite_master WHERE type=\'table\' AND name=\'sounds\';').get();
 	if(!soundCheck) {
 		soundDB.prepare('CREATE TABLE sounds (filename TEXT PRIMARY KEY, description TEXT, timesPlayed INTEGER);').run();
@@ -200,16 +215,9 @@ module.exports.prepareSound = async function(client) {
 		soundDB.pragma('journal_mode = wal');
 		console.log('Sound DB created!');
 	}
-	const checkSound = soundDB.prepare('SELECT 1 FROM sounds WHERE filename = ?');
-	const addSound = soundDB.prepare('INSERT OR REPLACE INTO sounds (filename, description, timesPlayed) VALUES (@filename, @description, @timesPlayed);');
-	const addAlias = soundDB.prepare('INSERT OR REPLACE INTO aliases (alias, filename) VALUES (@alias, @filename);');
-	for(const file of fs.readdirSync(config.soundDirectory)) {
-		if(/.*(?:\.wav|\.mp3|\.ogg)/.test(file) && !(checkSound.get(file))) {
-			await addSound.run({ filename: file, description: 'Change Me', timesPlayed: 0 });
-			await addAlias.run({ alias: `${file.slice(0, -4)}`, filename: file });
-			console.log('added ' + file + ' to database!');
-		}
-	}
+	// check for new sound files
+	await module.exports.updateSoundFiles();
+	// Check for update.txt to update descriptions
 	if(fs.existsSync('./update.txt')) {
 		const readline = require('readline');
 		const rl = readline.createInterface({
@@ -232,48 +240,32 @@ module.exports.prepareSound = async function(client) {
 			err ? console.log('ERROR: ' + err) : null;
 		});
 	}
+
+	// create audioQueue for each connected guild
 	client.guilds.map(guild => client.audioQueue.set(guild.id, []));
 };
 
 /*
 Searches DB for given string in aliases, filename, or description
 @param {Discord.Message} message
+@param boolean exactWord: Should it match the exact word?
 */
-module.exports.search = async function(message) {
-	const query = await soundDB.prepare('SELECT aliases.filename, sounds.description, sounds.timesPlayed, '
-		+ 'GROUP_CONCAT(aliases.alias) as list FROM aliases ' +
-		'INNER JOIN sounds ON aliases.filename = sounds.filename ' +
-		'GROUP BY aliases.filename HAVING (aliases.filename || \' \' || description || \' \' || list) LIKE ?')
-		.all('%' + message.content.split(' ').slice(1).join(' ') + '%');
-	async function displayResult(offset) {
-		const result = await module.exports.printSoundQuery(query, offset);
-		await message.channel.send(query.length + ' record' + (query.length === 1 ? '' : 's')
-			+ ' found! ' + (query.length > (10 + offset) ? 'Type `next` for next page:' : '') + '\n' + result);
-		if(query.length > 10 + offset) {
-			const collector = new Discord.MessageCollector(message.channel,
-				(newMessage) =>	(newMessage.author.id === message.author.id),
-				{ max: 20, maxMatches: 1 });
-			collector.on('collect', (newMessage) => {
-				if(newMessage.content.toLowerCase() === 'next') {
-					displayResult(offset + 10);
-				}
-				collector.stop();
-			});
-		}
+module.exports.search = async function(message, exactWord) {
+	let query = '';
+	if(exactWord) {
+		query = await soundDB.prepare('SELECT aliases.filename, sounds.description, sounds.timesPlayed, '
+			+ 'GROUP_CONCAT(aliases.alias, \', \') as list FROM aliases ' +
+			'INNER JOIN sounds ON aliases.filename = sounds.filename ' +
+			'GROUP BY aliases.filename HAVING LOWER(aliases.filename || \' \' || description || \' \' || list || \' \') GLOB ?')
+			.all('*[^a-z0-9]' + message.content.split(' ').slice(1).join(' ').toLowerCase() + '[^a-z0-9]*');
 	}
-	displayResult(0);
-};
-
-/*
-Searches DB for given string as an isolated word in aliases, filename, or description
-@param {Discord.Message} message
-*/
-module.exports.searchWord = async function(message) {
-	const query = await soundDB.prepare('SELECT aliases.filename, sounds.description, sounds.timesPlayed, '
-		+ 'GROUP_CONCAT(aliases.alias, \', \') as list FROM aliases ' +
-		'INNER JOIN sounds ON aliases.filename = sounds.filename ' +
-		'GROUP BY aliases.filename HAVING LOWER(aliases.filename || \' \' || description || \' \' || list || \' \') GLOB ?')
-		.all('*[^a-z0-9]' + message.content.split(' ').slice(1).join(' ').toLowerCase() + '[^a-z0-9]*');
+	else {
+		query = await soundDB.prepare('SELECT aliases.filename, sounds.description, sounds.timesPlayed, '
+			+ 'GROUP_CONCAT(aliases.alias) as list FROM aliases ' +
+			'INNER JOIN sounds ON aliases.filename = sounds.filename ' +
+			'GROUP BY aliases.filename HAVING (aliases.filename || \' \' || description || \' \' || list) LIKE ?')
+			.all('%' + message.content.split(' ').slice(1).join(' ') + '%');
+	}
 	async function displayResult(offset) {
 		const result = await module.exports.printSoundQuery(query, offset);
 		await message.channel.send(query.length + ' record' + (query.length === 1 ? '' : 's')
@@ -305,13 +297,14 @@ module.exports.soundFragment = function(client, message) {
 		const filename = soundDB.prepare('SELECT filename FROM aliases WHERE LOWER(alias) = ? OR LOWER(filename) = ?')
 			.get(combined, combined).filename;
 		const fullPath = config.soundDirectory + filename;
+		const voiceChannel = message.member.voice.channel;
 		if(!message.member.voice.channel) {
 			message.channel.send('Please connect to a channel first!');
 			return;
 		}
 		if(fs.existsSync(fullPath)) {
 			soundDB.prepare('UPDATE sounds SET timesPlayed = timesPlayed + 1 WHERE filename = ?').run(filename);
-			audioHandler.addAudio(client, message, fullPath);
+			audioHandler.addAudio(client, voiceChannel, message, fullPath);
 		}
 		else {
 			console.log(filename + ' not found! Deleting related entries.');
@@ -319,22 +312,6 @@ module.exports.soundFragment = function(client, message) {
 			soundDB.prepare('DELETE FROM aliases WHERE filename = ?').run(filename);
 			message.channel.send('Sound file not found, sorry about that!'
 				+ ' I deleted the command from the list to make you feel better.');
-		}
-	}
-};
-
-/*
-Checks the sound directory for new sound files.
-*/
-module.exports.updateSound = async function() {
-	const checkSound = soundDB.prepare('SELECT 1 FROM sounds WHERE filename = ?');
-	const addSound = soundDB.prepare('INSERT OR REPLACE INTO sounds (filename, description, timesPlayed) VALUES (@filename, @description, @timesPlayed);');
-	const addAlias = soundDB.prepare('INSERT OR REPLACE INTO aliases (alias, filename) VALUES (@alias, @filename);');
-	for(const file of fs.readdirSync(config.soundDirectory)) {
-		if(/.*(?:\.wav|\.mp3|\.ogg)/.test(file) && !(checkSound.get(file))) {
-			await addSound.run({ filename: file, description: 'Change Me', timesPlayed: 0 });
-			await addAlias.run({ alias: `${file.slice(0, -4)}`, filename: file });
-			console.log('added ' + file + ' to database!');
 		}
 	}
 };

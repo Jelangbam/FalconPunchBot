@@ -6,6 +6,7 @@ const config = require('./config.json');
 // const users = new SQLite(config.userDB);
 const fs = require('fs');
 const soundCommands = require('./soundCommands.js');
+const audioHandler = require('./audioHandler.js');
 
 client.on('error', (error) => console.log(error));
 
@@ -62,10 +63,10 @@ client.on('message', async (message) => {
 			message.channel.send(fs.readFileSync('./help.txt').toString('utf-8'));
 			break;
 		case 'mostplayed':
-			soundCommands.mostPlayed(message);
+			soundCommands.mostPlayed(message, false);
 			break;
 		case 'mostplayeddetailed':
-			soundCommands.mostPlayedDetailed(message);
+			soundCommands.mostPlayedDetailed(message, true);
 			break;
 		case 'part':
 		case 'leave':
@@ -75,14 +76,14 @@ client.on('message', async (message) => {
 			}
 			break;
 		case 'search':
-			soundCommands.search(message);
+			soundCommands.search(message, false);
 			break;
 		case 'searchword':
-			soundCommands.searchWord(message);
+			soundCommands.search(message, true);
 			break;
 		case 'update':
 			if(message.author.id === config.admin) {
-				await soundCommands.updateSound();
+				await soundCommands.updateSoundFiles();
 			}
 			break;
 		default:
@@ -94,8 +95,24 @@ client.on('message', async (message) => {
 // Force bot to leave if it is the last one in the channel.
 client.on('voiceStateUpdate', (oldState) => {
 	const voiceConnection = client.voiceConnections.get(oldState.guild.id);
-	if(voiceConnection && voiceConnection.channel.members.size === 1) {
+	if(oldState.id !== client.user.id && voiceConnection && voiceConnection.channel.members.size === 1) {
 		voiceConnection.disconnect();
+
+		// Create new queue, removing stuff for the channel that is now empty
+		const newQueue = [];
+		for(const queueItem of client.audioQueue.get(oldState.guild.id)) {
+			if(queueItem.voiceChannel.id !== oldState.channel.id) {
+				newQueue.push(queueItem);
+			}
+			else if(config.deleteAfterSound && client.guilds.get(oldState.guild.id).me.hasPermission('MANAGE_MESSAGES')) {
+				// delete messages that are queued in the channel that won't get played
+				queueItem.message.delete();
+			}
+		}
+		client.audioQueue.set(oldState.guild.id, newQueue);
+
+		// Resume playing to other voice channels if they are in queue
+		audioHandler.playNext(client, oldState.guild.id);
 	}
 });
 
