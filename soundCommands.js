@@ -44,7 +44,7 @@ message.content should have the format: -remove alias "alias"
 */
 async function aliasRemove(message) {
 	const alias = message.content.slice(config.prefix.length).split('"')[1];
-	const aliasQuery = await soundDB.prepare('SELECT * FROM aliases WHERE alias = ?').get(alias);
+	const aliasQuery = await soundDB.prepare('SELECT alias FROM aliases WHERE alias = ?').get(alias);
 	if(!aliasQuery) {
 		message.channel.send('Error: Alias not found!');
 		return;
@@ -65,7 +65,7 @@ async function printSoundQuery(query, offset = 0) {
 		for(let i = offset; i < Math.min(query.length, 10 + offset); i++) {
 			result += (i + 1) + '. ' + query[i].filename + ': ' + query[i].description + '\n'
 				+ 'Aliases: ';
-			const aliases = await soundDB.prepare('SELECT * FROM aliases WHERE filename = ?')
+			const aliases = await soundDB.prepare('SELECT alias FROM aliases WHERE filename = ?')
 				.all(query[i].filename);
 			for(const answer of aliases) {
 				result += answer.alias + ', ';
@@ -80,7 +80,7 @@ async function printSoundQuery(query, offset = 0) {
 /*
 Takes in a soundDB query using the all() and
 returns string with just filename and times played
-@param [{filename STRING, description STRING, timesPlayed INTEGER}] query
+@param [{filename STRING, timesPlayed INTEGER}] query
 */
 function printShortSoundQuery(query) {
 	let result = '';
@@ -188,12 +188,14 @@ Displays the top 20 most played files into the channel
 @param boolean detailed: should it output detailed stats?
 */
 module.exports.mostPlayed = async function(message, detailed) {
-	const query = await soundDB.prepare('SELECT * FROM sounds ORDER BY timesPlayed DESC').all();
+	let query;
 	let result = '';
 	if(detailed) {
+		query = await soundDB.prepare('SELECT * FROM sounds ORDER BY timesPlayed DESC').all();
 		result = await module.exports.printSoundQuery(query);
 	}
 	else {
+		query = await soundDB.prepare('SELECT filename, timesPlayed FROM sounds ORDER BY timesPlayed DESC').all();
 		result = await module.exports.printShortSoundQuery(query);
 	}
 	message.channel.send('Most Played Sound Clips:\n' + result);

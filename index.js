@@ -66,7 +66,7 @@ client.on('message', async (message) => {
 			soundCommands.mostPlayed(message, false);
 			break;
 		case 'mostplayeddetailed':
-			soundCommands.mostPlayedDetailed(message, true);
+			soundCommands.mostPlayed(message, true);
 			break;
 		case 'part':
 		case 'leave':
