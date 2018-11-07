@@ -25,7 +25,7 @@ async function aliasAdd(message) {
 	const alias = fragments[1].slice(0, -1);
 	const filename = fragments[2].slice(0, -1);
 	const fileQuery = await soundDB.prepare('SELECT 1 FROM sounds WHERE filename = ?').get(filename);
-	const aliasQuery = await soundDB.prepare('SELECT 1 FROM aliases WHERE alias = ?').get(alias);
+	const aliasQuery = await soundDB.prepare('SELECT filename FROM aliases WHERE alias = ?').get(alias);
 	if(aliasQuery) {
 		message.channel.send('Error: Alias already used by ' + aliasQuery.filename);
 		return;
