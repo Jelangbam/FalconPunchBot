@@ -238,8 +238,10 @@ module.exports.prepareSound = async function(client) {
 				console.log('Failed to find file ' + filename + '.');
 			}
 		});
-		fs.rename('./update.txt', './completed-update.txt', function(err) {
-			err ? console.log('ERROR: ' + err) : null;
+		rl.on('close', () => {
+			fs.rename('./update.txt', './completed-update.txt', function(err) {
+				err ? console.log('ERROR: ' + err) : null;
+			});
 		});
 	}
 
