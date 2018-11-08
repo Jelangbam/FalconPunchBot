@@ -8,8 +8,6 @@ const fs = require('fs');
 const soundCommands = require('./soundCommands.js');
 const audioHandler = require('./audioHandler.js');
 
-client.on('error', (error) => console.log(error));
-
 // Create soundDB if not there, check for new audio files, and create a queue.
 client.on('ready', async () => {
 	await soundCommands.prepareSound(client);
@@ -114,6 +112,16 @@ client.on('voiceStateUpdate', (oldState) => {
 		// Resume playing to other voice channels if they are in queue
 		audioHandler.playNext(client, oldState.guild.id);
 	}
+});
+
+// error handling
+client.on('error', (error) => console.error(error));
+client.on('warn', (e) => console.warn(e));
+
+// if manually closed, gracefully disconnect
+process.on('SIGINT', async () => {
+	await soundCommands.closeSound();
+	await client.destroy();
 });
 
 client.login(config.token);

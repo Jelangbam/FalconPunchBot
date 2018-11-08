@@ -18,16 +18,20 @@ const playNext = async function(client, guildId) {
 	const voiceChannel = client.audioQueue.get(guildId)[0].voiceChannel;
 	const currentVoiceConnection = client.voiceConnections.get(guildId);
 	client.audioQueue.get(guildId).shift();
+
+	// Delete message if configured to and has permission to
 	if(config.deleteAfterSound && client.guilds.get(guildId).me.hasPermission('MANAGE_MESSAGES')) {
 		message.delete();
 	}
+
+	// Play voice file in the correct channel
 	let dispatcher;
 	if(currentVoiceConnection && currentVoiceConnection.channel.id === voiceChannel.id) {
 		try {
 			dispatcher = client.voiceConnections.get(guildId).play(filename, config.soundSettings);
 		}
 		catch(error) {
-			console.log(error);
+			console.error(error);
 		}
 	}
 	else {
@@ -36,14 +40,20 @@ const playNext = async function(client, guildId) {
 		}
 		try {
 			const newConnection = await voiceChannel.join();
+			newConnection.on('error', (error) => {
+				console.error(error);
+			});
 			dispatcher = newConnection.play(filename, config.soundSettings);
 		}
 		catch(error) {
-			console.log(error);
+			console.error(error);
 		}
 	}
 	dispatcher.on('end', () => {
 		module.exports.playNext(client, guildId);
+	});
+	dispatcher.on('error', (error) => {
+		console.error(error);
 	});
 };
 
@@ -65,6 +75,7 @@ module.exports.addAudio = function(client, voiceChannel, message, filename) {
 		filename: filename,
 		voiceChannel: voiceChannel,
 	});
+	// If the bot isn't playing something in that guild currently, connect and play the clip in the right channel
 	if(client.voiceConnections.get(guildId)) {
 		if(client.voiceConnections.get(guildId).speaking.bitfield === 0) {
 			module.exports.playNext(client, guildId);
