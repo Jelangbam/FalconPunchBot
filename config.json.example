@@ -2,8 +2,8 @@
 	"admin": "INSERT YOUR USER ID HERE",
 	"deleteAfterSound": true,
 	"prefix": "-",
-	"soundDB": "./sounds.sqlite",
-	"soundDirectory": "./sounds/",
+	"soundDB": "../sounds.sqlite",
+	"soundDirectory": "../sounds/",
 	"soundSettings": {
 		"volume": false,
 		"passes": 3

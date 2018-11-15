@@ -2,7 +2,7 @@
 Handles audio playback into voice channels.
 */
 'use strict';
-const config = require('./config.json');
+const config = require('../config.json');
 
 /*
 Plays the next file in queue for the guild represented by guildId.
@@ -40,20 +40,20 @@ const playNext = async function(client, guildId) {
 		}
 		try {
 			const newConnection = await voiceChannel.join();
-			newConnection.on('error', (error) => {
-				console.error(error);
+			newConnection.on('error', () => {
+				console.log('Connection Error, Sorry about that.');
 			});
 			dispatcher = newConnection.play(filename, config.soundSettings);
 		}
 		catch(error) {
-			console.error(error);
+			console.log('Connection Error, Sorry about that.');
 		}
 	}
 	dispatcher.on('end', () => {
 		module.exports.playNext(client, guildId);
 	});
-	dispatcher.on('error', (error) => {
-		console.error(error);
+	dispatcher.on('error', () => {
+		console.log('Connection Error, Sorry about that.');
 	});
 };
 

@@ -6,7 +6,7 @@ Commands handled: "alias add", "alias remove", "cleardata", "dbsize", "descripti
 
 'use strict';
 const SQLite = require('better-sqlite3');
-const config = require('./config.json');
+const config = require('../config.json');
 const soundDB = new SQLite(config.soundDB);
 const fs = require('fs');
 const audioHandler = require('./audioHandler.js');
@@ -252,8 +252,9 @@ module.exports.prepareSound = async function(client) {
 /*
 Searches DB for given string in aliases, filename, or description
 @param {Discord.Message} message
-@param boolean exactWord: Should it match the exact word?
+@param {boolean} exactWord: Should it match the exact word?
 */
+
 module.exports.search = async function(message, exactWord) {
 	let query = '';
 	if(exactWord) {
