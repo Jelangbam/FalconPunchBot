@@ -19,6 +19,7 @@ Currently supports:
 This is a personal bot for my own uses, but if you want to try it out:
 * From command line, run `npm install`
 * Open `config.json.example` in a text editor and edit the `admin` and `token` field with your user ID ex.(123456789012345678) and your bot's secret token.
+* Rename `config.json.example` to `config.json`
 * Take note of `soundDirectory`: Change it if you wish, then create the folder. For example if you have `"soundDirectory": "../clips/",` then create a clips folder in the root directory.
 * 'deleteAfterSound' set to true if you want the bot to delete the message after it plays the sound from the soundpack!
 * Add your sounds to the directory!
