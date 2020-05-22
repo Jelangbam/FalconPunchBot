@@ -16,45 +16,49 @@ const playNext = async function(client, guildId) {
 	const message = client.audioQueue.get(guildId)[0].message;
 	const filename = client.audioQueue.get(guildId)[0].filename;
 	const voiceChannel = client.audioQueue.get(guildId)[0].voiceChannel;
-	const currentVoiceConnection = client.voiceConnections.get(guildId);
+	const currentVoiceConnection = client.voice.connections.get(guildId);
 	client.audioQueue.get(guildId).shift();
-
+	
 	// Delete message if configured to and has permission to
-	if(config.deleteAfterSound && client.guilds.get(guildId).me.hasPermission('MANAGE_MESSAGES')) {
+	if(config.deleteAfterSound && client.guilds.cache.get(guildId).me.hasPermission('MANAGE_MESSAGES')) {
 		message.delete();
 	}
 
 	// Play voice file in the correct channel
 	let dispatcher;
-	if(currentVoiceConnection && currentVoiceConnection.channel.id === voiceChannel.id) {
-		try {
-			dispatcher = client.voiceConnections.get(guildId).play(filename, config.soundSettings);
-		}
-		catch(error) {
-			console.error(error);
-		}
-	}
-	else {
-		if(currentVoiceConnection) {
-			await currentVoiceConnection.disconnect();
-		}
-		try {
-			const newConnection = await voiceChannel.join();
-			newConnection.on('error', () => {
+	try {
+		if(currentVoiceConnection && currentVoiceConnection.channel.id === voiceChannel.id) {
+
+				console.log('Attempting to play something on ' + currentVoiceConnection.channel.id);
+				dispatcher = client.voice.connections.get(guildId).play(filename, config.soundSettings);
+			}
+		else {
+			try {
+				if(currentVoiceConnection) {
+					currentVoiceConnection.disconnect();
+					
+				}
+				const newConnection = await voiceChannel.join();
+				newConnection.on('error', () => {
+					console.log('Connection Error, Sorry about that.');
+				});
+				console.log('Playing ' + filename);
+				dispatcher = newConnection.play(filename, config.soundSettings);
+			}
+			catch(error) {
 				console.log('Connection Error, Sorry about that.');
-			});
-			dispatcher = newConnection.play(filename, config.soundSettings);
+			}
 		}
-		catch(error) {
+		dispatcher.on('finish', () => {
+			module.exports.playNext(client, guildId);
+		});
+		dispatcher.on('error', () => {
 			console.log('Connection Error, Sorry about that.');
-		}
+		});
 	}
-	dispatcher.on('end', () => {
-		module.exports.playNext(client, guildId);
-	});
-	dispatcher.on('error', () => {
-		console.log('Connection Error, Sorry about that.');
-	});
+	catch(error) {
+		console.error(error);
+	}
 };
 
 module.exports = {
@@ -76,8 +80,8 @@ module.exports.addAudio = function(client, voiceChannel, message, filename) {
 		voiceChannel: voiceChannel,
 	});
 	// If the bot isn't playing something in that guild currently, connect and play the clip in the right channel
-	if(client.voiceConnections.get(guildId)) {
-		if(client.voiceConnections.get(guildId).speaking.bitfield === 0) {
+	if(client.voice.connections.get(guildId)) {
+		if(client.voice.connections.get(guildId).speaking.bitfield === 0) {
 			module.exports.playNext(client, guildId);
 		}
 	}

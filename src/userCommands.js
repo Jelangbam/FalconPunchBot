@@ -30,8 +30,8 @@ async function displayTop(message, query) {
 	let result = '```';
 	let limit = 10;
 	for(let i = 0; i < Math.min(query.length, limit); i++) {
-		if(message.guild.members.get(query[i].userid)) {
-			result += await message.guild.members.get(query[i].userid).displayName + ': ' + query[i].commandsUsed + (query[i].commandsUsed === 1 ? '\n' : 's\n');
+		if(message.guild.members.cache.get(query[i].userid)) {
+			result += await message.guild.members.cache.get(query[i].userid).displayName + ': ' + query[i].commandsUsed + (query[i].commandsUsed === 1 ? '\n' : 's\n');
 		}
 		else{
 			console.log(query[i].userid + ' not found! Deleting related entries.');

@@ -70,8 +70,8 @@ client.on('message', async (message) => {
 			break;
 		case 'part':
 		case 'leave':
-			if(message.guild && (message.member.voice.channel === client.voiceConnections.get(message.guild.id).channel)) {
-				client.voiceConnections.get(message.guild.id).disconnect();
+			if(message.guild && (message.member.voice.channel === client.voice.connections.get(message.guild.id).channel)) {
+				client.voice.connections.get(message.guild.id).disconnect();
 				client.audioQueue.set(message.guild.id, []);
 			}
 			break;
@@ -94,7 +94,7 @@ client.on('message', async (message) => {
 
 // Force bot to leave if it is the last one in the channel.
 client.on('voiceStateUpdate', (oldState) => {
-	const voiceConnection = client.voiceConnections.get(oldState.guild.id);
+	const voiceConnection = client.voice.connections.get(oldState.guild.id);
 	if(oldState.id !== client.user.id && voiceConnection && voiceConnection.channel.members.size === 1) {
 		voiceConnection.disconnect();
 
@@ -104,7 +104,7 @@ client.on('voiceStateUpdate', (oldState) => {
 			if(queueItem.voiceChannel.id !== oldState.channel.id) {
 				newQueue.push(queueItem);
 			}
-			else if(config.deleteAfterSound && client.guilds.get(oldState.guild.id).me.hasPermission('MANAGE_MESSAGES')) {
+			else if(config.deleteAfterSound && client.guilds.cache.get(oldState.guild.id).me.hasPermission('MANAGE_MESSAGES')) {
 				// delete messages that are queued in the channel that won't get played
 				queueItem.message.delete();
 			}

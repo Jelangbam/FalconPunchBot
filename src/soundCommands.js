@@ -246,7 +246,7 @@ module.exports.prepareSound = async function(client) {
 	}
 
 	// create audioQueue for each connected guild
-	client.guilds.map(guild => client.audioQueue.set(guild.id, []));
+	client.guilds.cache.map(guild => client.audioQueue.set(guild.id, []));
 };
 
 /*
