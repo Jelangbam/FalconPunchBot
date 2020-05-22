@@ -1,23 +1,22 @@
 {
-  "name": "discordbot",
-  "version": "0.0.1",
-  "description": "Basic soundpack bot for Discord",
+  "name": "falconpunchbot",
+  "version": "1.0.0",
+  "description": "Discord Sound Bot",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "cd src && node ."
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Jason Elangbam",
+  "repository": {
+    "type": "git",
+    "url": "\u0016https://github.com/Jelangbam/FalconPunchBot"
+  },
+  "keywords": [
+    "bot"
+  ],
+  "author": "Jason",
   "license": "MIT",
   "dependencies": {
-    "better-sqlite3": "^5.0.1",
-    "bufferutil": "^3.0.5",
-    "discord.js": "github:discordjs/discord.js#master",
-    "erlpack": "github:discordapp/erlpack",
-    "eslint": "^5.8.0",
-    "ffmpeg-binaries": "^4.0.0",
-    "libsodium-wrappers": "^0.7.3",
-    "node-opus": "^0.2.9",
-    "zlib-sync": "^0.1.4"
+    "@discordjs/opus": "^0.3.2",
+    "discord.js": "^12.2.0"
   }
 }

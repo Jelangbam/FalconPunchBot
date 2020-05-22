@@ -39,6 +39,7 @@ client.on('message', async (message) => {
 		case 'dbsize':
 			soundCommands.dbSize(message);
 			break;
+/*
 		case 'disconnect':
 			if(message.author.id === config.admin) {
 				await Promise.all(client.voiceConnections.map(async (connection) => await connection.disconnect()));
@@ -47,6 +48,7 @@ client.on('message', async (message) => {
 				client.destroy();
 			}
 			break;
+			*/
 		case 'description':
 			if(message.author.id === config.admin) {
 				soundCommands.modifyDescription(message);
