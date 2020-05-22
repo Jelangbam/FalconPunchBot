@@ -31,7 +31,7 @@ async function displayTop(message, query) {
 	let limit = 10;
 	for(let i = 0; i < Math.min(query.length, limit); i++) {
 		if(message.guild.members.cache.get(query[i].userid)) {
-			result += await message.guild.members.cache.get(query[i].userid).displayName + ': ' + query[i].commandsUsed + (query[i].commandsUsed === 1 ? '\n' : 's\n');
+			result += message.guild.members.cache.get(query[i].userid).displayName + ': ' + query[i].commandsUsed + (query[i].commandsUsed === 1 ? '\n' : 's\n');
 		}
 		else{
 			console.log(query[i].userid + ' not found! Deleting related entries.');
@@ -68,11 +68,11 @@ Increment amount user has used command in guild.
 */
 module.exports.incrementUser = async function(guild, user) {
 	if(!userDB.prepare('SELECT 1 FROM ? WHERE userid= ?;').get(guild.id, user.id)) {
-		await userDB.prepare('INSERT INTO TABLE ? (userid, commandsUsed, money) VALUES (@userid, @commandsUsed, @money);').run(guild.id, { userid: user.id, commandsUsed: 1, money: 100 });
+		userDB.prepare('INSERT INTO TABLE ? (userid, commandsUsed, money) VALUES (@userid, @commandsUsed, @money);').run(guild.id, { userid: user.id, commandsUsed: 1, money: 100 });
 		console.log('User ' + user.id + ' created for ' + guild.id);
 	}
 	else {
-		await userDB.prepare('UPDATE ? SET commandsUsed = commandUsed + 1 WHERE userid = ?').run(guild.id, user.id);
+		userDB.prepare('UPDATE ? SET commandsUsed = commandUsed + 1 WHERE userid = ?').run(guild.id, user.id);
 	}
 };
 
@@ -81,8 +81,8 @@ Display top users based on commands used in guild
 @param {Discord.Message} message
 */
 module.exports.mostUsed = async function(message) {
-	const query = await userDB.prepare('SELECT * FROM ? ORDER BY commandsUsed DESC').all(message.guild.id);
-	const result = await displayTop(message, query);
+	const query = userDB.prepare('SELECT * FROM ? ORDER BY commandsUsed DESC').all(message.guild.id);
+	const result = displayTop(message, query);
 	message.channel.send('Top users by commands:\n' + result);
 };
 
